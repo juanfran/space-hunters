@@ -5,3 +5,4 @@
 [node name="space" type="Node2D"]
 
 [node name="ship" parent="." instance=ExtResource( 1 )]
+position = Vector2( 881.386, 585.437 )
