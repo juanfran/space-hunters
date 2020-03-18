@@ -1,6 +1,7 @@
 extends KinematicBody2D
 
-var speed = 200
+var speed = 400
+var rotation_speed = 50
 var velocity = Vector2()
 var axis_value
 
@@ -8,8 +9,10 @@ var JOYPAD_SENSITIVITY = 2
 const JOYPAD_DEADZONE = 0.35
 
 
-var input_movement_vector = Vector2(0, 0)
+var input_direction_vector = Vector2(0, 0)
 var last_speed = 0
+var right_dash = false
+var left_dash = false
 # x   y
 # -1, 0 left
 # +1, 0 right
@@ -18,41 +21,46 @@ var last_speed = 0
 
 func _physics_process(delta):
     if Input.get_connected_joypads().size() > 0:
-        var user_speed = Input.get_joy_axis(0, JOY_R2)
+        var user_speed = Input.get_joy_axis(0, JOY_R2) - Input.get_joy_axis(0, JOY_L2)
         
-#        input_movement_vector.x
-#        input_movement_vector.y
-        # self.transform.rotated()
-
-        
-        if input_movement_vector.x != 0 and input_movement_vector.y != 0:
-            self.rotation = input_movement_vector.angle()
+        if input_direction_vector.x != 0 and input_direction_vector.y != 0:
+            if input_direction_vector.x > 0:
+                print(self.rotation, self.rotation + 5)
+                self.rotation = self.rotation + 0.05
+            else:
+                self.rotation = self.rotation - 0.05
+            #self.rotation = (self.rotation + 5) * rotation_speed * delta
         
         var direction = Vector2(cos(self.rotation), sin(self.rotation))
-        print(user_speed)
         
-        if user_speed - 0.1 < last_speed: 
-            user_speed = last_speed - 0.025
-            
-            if user_speed < 0:
-                user_speed = 0
+# fix         
+#        if last_speed > 0 && user_speed >= 0:
+#            if user_speed - 0.1 < last_speed: 
+#                user_speed = last_speed - 0.025
+#
+#                if user_speed < 0:
+#                    user_speed = 0
+#        elif last_speed < 0 && user_speed <= 0:
+#            if user_speed + 0.1 > last_speed: 
+#                user_speed = last_speed + 0.025
+#
+#                if user_speed > 0:
+#                    user_speed = 0            
         
         last_speed = user_speed
+        
+        if right_dash:
+            direction = direction.rotated(45)
+        
+        if left_dash:
+            direction = direction.rotated(-45)
+        
         move_and_collide(direction * user_speed * speed * delta)
-        
-#        if input_movement_vector.x > 0: 
-#            self.rotation = input_movement_vector.angle()
-#            # self.rotation_degrees = self.rotation_degrees + (100 * delta)
-#        elif input_movement_vector.x < 0:
-#            self.rotation = input_movement_vector.angle()
-            # self.rotation_degrees = self.rotation_degrees - (100 * delta)
-            #print(self.rotation_degrees)
-        
-        # move_and_collide(((user_speed * 100) * Vector2(0, 0)).rotated(30) * delta)
-         
-        # move_and_collide(Vector2(2, 0))
 
 func _input(event):
+    right_dash = false
+    left_dash = false      
+    
     if Input.get_connected_joypads().size() > 0:
         var joypad_vec = Vector2(Input.get_joy_axis(0, 0), Input.get_joy_axis(0, 1))
 
@@ -61,7 +69,13 @@ func _input(event):
         else:
             joypad_vec = joypad_vec.normalized()
             
-        input_movement_vector = joypad_vec
+        if Input.is_joy_button_pressed(0, JOY_R):
+            right_dash = true
+
+        if Input.is_joy_button_pressed(0, JOY_L):
+            left_dash = true            
+            
+        input_direction_vector = joypad_vec
 
 #func _input(event):
 #    if Input.get_connected_joypads().size() > 0 && event is InputEventJoypadButton:
