@@ -1,13 +1,13 @@
 extends KinematicBody2D
 
 var speed = 400
-var rotation_speed = 50
+var rotation_speed = 5
 var velocity = Vector2()
 var axis_value
 
 var JOYPAD_SENSITIVITY = 2
-const JOYPAD_DEADZONE = 0.35
-
+const JOYPAD_DEADZONE = 0.2
+const TRIGGER_DEADZONE = 0.35
 
 var input_direction_vector = Vector2(0, 0)
 var last_speed = 0
@@ -19,43 +19,80 @@ var left_dash = false
 # 0, -1 top
 # 0, +1 bottom
 
+# angle
+# top 0 to -3
+# bottom 0 to 3
+
+# 2.4 a -2.9, 0.7 steps (6 - (2.4 + 2.9))
+
+# 2.4 a -2.9, 0.7 steps
+
+# 3 a 2.5, 0,5 diff sub
+# 1 a 2, 1 diff sum
+# -1 a -3, 2 diff sub
+
+# -2.7
+# 2.8 + 2.7 
+# 2.8 a -2.7 5 pasos
+
+# 2
+# 3 + 2 = 5
+# 3 - 2 = 1 // restar
+
+# -1 0 -> + 1 0
+
+# 0 a 2 clockwise -2
+# 0 a -2 no clockwise +2
+# -2 a 2 no clockwise -4
+# 2 a -2 clockwise 0
+
+# -1 0.5 -> + 1 0 (clockwise)
+# -1 -0.5 -> + 1 0 (noclockwise)
+
+# -1 0.5 -> + -1 0.7 (clockwise)
+# -1 -0.5 -> -1 0.4 (noclockwise)
+
 func _physics_process(delta):
     if Input.get_connected_joypads().size() > 0:
         var user_speed = Input.get_joy_axis(0, JOY_R2) - Input.get_joy_axis(0, JOY_L2)
-        
-        if input_direction_vector.x != 0 and input_direction_vector.y != 0:
-            if input_direction_vector.x > 0:
-                print(self.rotation, self.rotation + 5)
-                self.rotation = self.rotation + 0.05
-            else:
-                self.rotation = self.rotation - 0.05
-            #self.rotation = (self.rotation + 5) * rotation_speed * delta
-        
         var direction = Vector2(cos(self.rotation), sin(self.rotation))
-        
-# fix         
-#        if last_speed > 0 && user_speed >= 0:
-#            if user_speed - 0.1 < last_speed: 
-#                user_speed = last_speed - 0.025
-#
-#                if user_speed < 0:
-#                    user_speed = 0
-#        elif last_speed < 0 && user_speed <= 0:
-#            if user_speed + 0.1 > last_speed: 
-#                user_speed = last_speed + 0.025
-#
-#                if user_speed > 0:
-#                    user_speed = 0            
-        
+        var stick_rotation = getStickVector()
+
+        if stick_rotation.x != 0 and stick_rotation.y != 0:
+            var target_angle = stepify(stick_rotation.angle(), 0.1)
+            var current_rotation = stepify(self.rotation, 0.1)
+            
+            if target_angle != current_rotation:
+                if direction.angle_to(stick_rotation) > 0:
+                    var new_angle = stepify(direction.angle() + (rotation_speed * delta), 0.1)  
+                    self.rotation = new_angle        
+                else:
+                    var new_angle = stepify(direction.angle() - (rotation_speed * delta), 0.1)
+                    self.rotation = new_angle  
+            
         last_speed = user_speed
         
-        if right_dash:
-            direction = direction.rotated(45)
-        
-        if left_dash:
-            direction = direction.rotated(-45)
+        if right_dash || left_dash:   
+            if right_dash:
+                direction = Vector2(direction.y, -direction.x)
+            
+            if left_dash:
+                direction = Vector2(-direction.y, direction.x) 
+                
+            if user_speed == 0:
+                user_speed = 1
         
         move_and_collide(direction * user_speed * speed * delta)
+
+func getStickVector():
+    var stick_rotation = Vector2(Input.get_joy_axis(0, 0), Input.get_joy_axis(0, 1))
+    
+    if stick_rotation.length() < JOYPAD_DEADZONE:
+        stick_rotation = Vector2(0, 0)
+    else:
+        stick_rotation = stick_rotation.normalized() * ((stick_rotation.length() - JOYPAD_DEADZONE) / (1 - JOYPAD_DEADZONE))
+        
+    return stick_rotation
 
 func _input(event):
     right_dash = false
@@ -64,7 +101,7 @@ func _input(event):
     if Input.get_connected_joypads().size() > 0:
         var joypad_vec = Vector2(Input.get_joy_axis(0, 0), Input.get_joy_axis(0, 1))
 
-        if joypad_vec.length() < JOYPAD_DEADZONE:
+        if joypad_vec.length() < TRIGGER_DEADZONE:
             joypad_vec = Vector2(0, 0)
         else:
             joypad_vec = joypad_vec.normalized()
