@@ -54,7 +54,10 @@ var left_dash = false
 
 func _physics_process(delta):
     if Input.get_connected_joypads().size() > 0:
-        var user_speed = Input.get_joy_axis(0, JOY_R2) - Input.get_joy_axis(0, JOY_L2)
+        var user_speed = 0
+        var decelerate = Input.get_joy_axis(0, JOY_L2)
+        var accelerate = Input.get_joy_axis(0, JOY_R2)
+        
         var direction = Vector2(cos(self.rotation), sin(self.rotation))
         var stick_rotation = getStickVector()
 
@@ -69,19 +72,55 @@ func _physics_process(delta):
                 else:
                     var new_angle = stepify(direction.angle() - (rotation_speed * delta), 0.1)
                     self.rotation = new_angle  
-            
+        
+        
+        var current_force = 0
+        
+        if accelerate:
+            current_force = accelerate
+        elif decelerate:
+            current_force = -decelerate
+        
+        if last_speed > 0 && accelerate < last_speed:
+            user_speed = last_speed   
+        elif last_speed < 0 && -decelerate > last_speed:
+            user_speed = last_speed   
+        elif !(accelerate && decelerate):
+            user_speed = current_force
+        else:
+            user_speed = last_speed   
+
+        if !accelerate && decelerate:
+            user_speed = lerp(user_speed, -decelerate, 0.02)
+        elif accelerate && !decelerate:
+            user_speed = lerp(user_speed, +accelerate, 0.02)
+        elif accelerate && decelerate:
+            user_speed = lerp(user_speed, 0, 0.02)
+
         last_speed = user_speed
         
         if right_dash || left_dash:   
-            if right_dash:
-                direction = Vector2(direction.y, -direction.x)
-            
-            if left_dash:
-                direction = Vector2(-direction.y, direction.x) 
-                
             if user_speed == 0:
                 user_speed = 1
-        
+                
+            if user_speed > 0:      
+                if right_dash:
+                    direction = Vector2(-direction.y, direction.x)
+                
+                if left_dash:
+                    direction = Vector2(direction.y, -direction.x) 
+                
+            else:
+                if right_dash:
+                    direction = Vector2(direction.y, -direction.x)
+                
+                if left_dash:
+                    direction = Vector2(-direction.y, direction.x)                 
+                
+        direction.x = stepify(direction.x, 0.1)
+        direction.y = stepify(direction.y, 0.1)
+        user_speed = stepify(user_speed, 0.01)
+                
         move_and_collide(direction * user_speed * speed * delta)
 
 func getStickVector():
