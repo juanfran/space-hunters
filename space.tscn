@@ -1,8 +1,17 @@
-[gd_scene load_steps=2 format=2]
+[gd_scene load_steps=4 format=2]
 
 [ext_resource path="res://ship.tscn" type="PackedScene" id=1]
+[ext_resource path="res://space.gd" type="Script" id=2]
+[ext_resource path="res://level1.tscn" type="PackedScene" id=3]
 
 [node name="space" type="Node2D"]
+script = ExtResource( 2 )
 
 [node name="ship" parent="." instance=ExtResource( 1 )]
 position = Vector2( 881.386, 585.437 )
+z_index = 1
+
+[node name="Camera2D" type="Camera2D" parent="ship"]
+current = true
+
+[node name="level1" parent="." instance=ExtResource( 3 )]
